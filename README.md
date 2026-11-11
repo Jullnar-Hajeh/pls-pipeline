@@ -33,7 +33,7 @@ check_source_files -> bronze_ingest -> silver_clean -> quality_check -> gold_sta
 | Bronze | `bronze.pls_ae` preserves source columns and flags as strings, adds fiscal year, source filename, and ingestion time, and merges yearly schemas. |
 | Silver | `silver.library_year` casts metrics, excludes temporary closures, and keeps one row per `(FSCSKEY, fiscal_year)`. |
 | Quality | Checks partition counts, closure counts, nonblank keys, uniqueness, nonnegative metrics, and an accented Bronze value in every selected year. Failures stop downstream execution. |
-| Gold | `gold.state_year_kpis` contains one row per state or territory and year, with library counts, usage totals, per-capita metrics, electronic circulation share, and year-over-year visit change. |
+| Gold | `gold.state_year_kpis` contains one row per state or territory and year, with library counts, missing-visit counts, usage totals, per-capita metrics, electronic circulation share, and year-over-year visit change. |
 
 [Source configuration](config/ae_sources.json) defines paths, encodings, and expected counts. FY2020 and FY2022 use Windows-1252, and FY2021 uses UTF-8. Bronze and Silver use `replaceWhere` to replace selected fiscal-year partitions. Gold rebuilds from all available Silver years so a revision also updates the following year's comparison. The DAG allows two retries per task and one active run at a time.
 
@@ -42,6 +42,8 @@ check_source_files -> bronze_ingest -> silver_clean -> quality_check -> gold_sta
 Silver converts `-1`, `-3`, `-4`, and `-9` to null and records the reason per metric in `missing_reason`. It excludes rows with `STATSTRU = 23`. The 13 FY2020 records with `-3` outside that closure status remain in Silver with the affected values set to null.
 
 Gold calculates ratios from state-year totals. Year-over-year visit change requires consecutive years, available visit totals, and a positive previous-year baseline. Puerto Rico first appears in FY2022. The U.S. Virgin Islands have missing visit totals in all three years, so their year-over-year change is also null in FY2021 and FY2022.
+
+`libraries_missing_visits` counts library systems with null `VISITS` in Silver for each state or territory and fiscal year. Zero visits count as a reported value.
 
 Two full DAG runs produced identical row counts. The quality checks passed for all three years.
 

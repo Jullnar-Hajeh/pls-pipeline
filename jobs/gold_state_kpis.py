@@ -13,6 +13,7 @@ def divide_if_positive(numerator, denominator):
 def build_state_kpis(silver):
     state_year = silver.groupBy("STABR", "fiscal_year").agg(
         F.count("*").alias("libraries"),
+        (F.count("*") - F.count("VISITS")).alias("libraries_missing_visits"),
         F.sum("POPU_LSA").alias("population_served"),
         F.sum("VISITS").alias("total_visits"),
         F.sum("TOTCIR").alias("total_circulation"),
@@ -25,6 +26,7 @@ def build_state_kpis(silver):
         "STABR",
         "fiscal_year",
         "libraries",
+        "libraries_missing_visits",
         "population_served",
         "total_visits",
         "total_circulation",
@@ -61,6 +63,7 @@ def validate_gold(gold):
     )
     stats = with_previous.groupBy("fiscal_year").agg(
         F.count("*").alias("rows"),
+        F.sum("libraries_missing_visits").alias("libraries_missing_visits"),
         F.countDistinct("STABR").alias("states"),
         F.count(F.when(invalid_key, 1)).alias("invalid_keys"),
         F.count(F.when(null_yoy != no_baseline, 1)).alias("unexpected_yoy"),
@@ -95,24 +98,33 @@ def write_gold(spark, storage_dir):
         stats = validate_gold(gold)
         spark.sql("CREATE DATABASE IF NOT EXISTS gold")
         table_path = (storage_dir / "gold" / "state_year_kpis").as_uri()
-        gold.write.format("delta").mode("overwrite").partitionBy("fiscal_year").save(table_path)
+        (
+            gold.write.format("delta")
+            .mode("overwrite")
+            .option("overwriteSchema", "true")
+            .partitionBy("fiscal_year")
+            .save(table_path)
+        )
         spark.sql(
             f"CREATE TABLE IF NOT EXISTS gold.state_year_kpis USING DELTA LOCATION '{table_path}'"
         )
-        saved = {
-            row.fiscal_year: row["count"]
-            for row in spark.table("gold.state_year_kpis").groupBy("fiscal_year").count().collect()
-        }
-        expected = {year.fiscal_year: year.rows for year in stats}
+        spark.catalog.refreshTable("gold.state_year_kpis")
+        saved_stats = spark.table("gold.state_year_kpis").groupBy("fiscal_year").agg(
+            F.count("*").alias("rows"),
+            F.sum("libraries_missing_visits").alias("libraries_missing_visits"),
+        ).collect()
+        saved = {year.fiscal_year: (year.rows, year.libraries_missing_visits) for year in saved_stats}
+        expected = {year.fiscal_year: (year.rows, year.libraries_missing_visits) for year in stats}
         if saved != expected:
             raise ValueError(f"Gold partition counts: expected {expected}, found {saved}")
         for year in stats:
             print(
                 f"Gold FY{year.fiscal_year}: state_year_rows={year.rows}, "
-                f"null_yoy={year.null_yoy}, missing_yoy_after_first={year.missing_yoy_after_first}",
+                f"null_yoy={year.null_yoy}, missing_yoy_after_first={year.missing_yoy_after_first}, "
+                f"libraries_missing_visits={year.libraries_missing_visits}",
                 flush=True,
             )
-        print(f"Gold total: state_year_rows={sum(saved.values())}", flush=True)
+        print(f"Gold total: state_year_rows={sum(year.rows for year in saved_stats)}", flush=True)
     finally:
         gold.unpersist()
 
