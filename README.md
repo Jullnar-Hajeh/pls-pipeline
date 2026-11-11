@@ -51,6 +51,14 @@ Two full DAG runs produced identical row counts. The quality checks passed for a
 | Silver | 9,241 | 9,207 | 9,238 | 27,686 |
 | Gold | 55 | 55 | 56 | 166 |
 
+## Bronze time travel
+
+After Bronze has been populated, run this command from the project directory while the DAG is idle. It shows recent Delta commits and compares row counts by year in version `0` and the latest version. Version `0` reflects the first write in the current Delta volume.
+
+```powershell
+docker compose -p pls-pipeline exec -T airflow spark-submit --master 'local[2]' /opt/airflow/jobs/show_bronze_history.py
+```
+
 ## Findings
 
 The findings rank the five largest increases and five largest declines among the 50 states by percentage change in total visits from FY2020 directly to FY2022. [Findings and reproduction command](FINDINGS.md) · [Visits chart](docs/visits-recovery-fy2020-fy2022.png)
