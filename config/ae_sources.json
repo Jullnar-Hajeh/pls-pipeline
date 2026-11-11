@@ -3,13 +3,23 @@
     "file": "fy2020/PLS_FY20_AE_pud20i.csv",
     "encoding": "windows-1252",
     "expected_rows": 9245,
-    "expected_closed": 4
+    "expected_closed": 4,
+    "encoding_probe": {
+      "library_key": "TX0111",
+      "column": "ADDRESS",
+      "expected_value": "710 W CÉSAR CHÁVEZ ST"
+    }
   },
   "2021": {
     "file": "fy2021/PLS_FY21_AE_pud21i.csv",
     "encoding": "UTF-8",
     "expected_rows": 9215,
-    "expected_closed": 8
+    "expected_closed": 8,
+    "encoding_probe": {
+      "library_key": "TX0730",
+      "column": "LIBNAME",
+      "expected_value": "PEÑITAS PUBLIC LIBRARY"
+    }
   },
   "2022": {
     "file": "fy2022/PLS_FY22_AE_pud22i.csv",
@@ -18,7 +28,8 @@
     "expected_closed": 10,
     "encoding_probe": {
       "library_key": "PR0003",
-      "library_name": "COROZAL PUBLIC LIBRARY (TEÓFILO MALDONADO RIVERA)"
+      "column": "LIBNAME",
+      "expected_value": "COROZAL PUBLIC LIBRARY (TEÓFILO MALDONADO RIVERA)"
     }
   }
 }

@@ -32,7 +32,7 @@ check_source_files -> bronze_ingest -> silver_clean -> quality_check -> gold_sta
 | Source check | Verifies that each selected CSV exists and is nonempty. |
 | Bronze | `bronze.pls_ae` preserves source columns and flags as strings, adds fiscal year, source filename, and ingestion time, and merges yearly schemas. |
 | Silver | `silver.library_year` casts metrics, excludes temporary closures, and keeps one row per `(FSCSKEY, fiscal_year)`. |
-| Quality | Checks partition counts, closure counts, nonblank keys, uniqueness, nonnegative metrics, and the accented FY2022 library name for `PR0003`. Failures stop downstream execution. |
+| Quality | Checks partition counts, closure counts, nonblank keys, uniqueness, nonnegative metrics, and an accented Bronze value in every selected year. Failures stop downstream execution. |
 | Gold | `gold.state_year_kpis` contains one row per state or territory and year, with library counts, usage totals, per-capita metrics, electronic circulation share, and year-over-year visit change. |
 
 [Source configuration](config/ae_sources.json) defines paths, encodings, and expected counts. FY2020 and FY2022 use Windows-1252, and FY2021 uses UTF-8. Bronze and Silver use `replaceWhere` to replace selected fiscal-year partitions. Gold rebuilds from all available Silver years so a revision also updates the following year's comparison. The DAG allows two retries per task and one active run at a time.

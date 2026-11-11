@@ -63,16 +63,29 @@ def check_layers(spark, sources, years):
                 errors.append(f"FY{year} {name}: expected {expected}, found {actual}")
 
         probe = source.get("encoding_probe")
-        if probe:
-            match = bronze.where(
+        if not probe:
+            errors.append(f"FY{year}: missing encoding probe in source configuration")
+            continue
+
+        library_key = probe["library_key"]
+        column = probe["column"]
+        observed = (
+            bronze.where(
                 (F.col("fiscal_year") == year)
-                & (F.col("FSCSKEY") == probe["library_key"])
-                & (F.col("LIBNAME") == probe["library_name"])
-            ).count()
-            if match != 1:
-                errors.append(f"FY{year}: accented LIBNAME probe failed for {probe['library_key']}")
-            else:
-                print(f"Quality FY{year}: encoding probe passed for {probe['library_key']}", flush=True)
+                & (F.col("FSCSKEY") == library_key)
+            )
+            .select(column)
+            .limit(2)
+            .collect()
+        )
+        values = [row[0] for row in observed]
+        if values != [probe["expected_value"]]:
+            errors.append(
+                f"FY{year}: encoding probe failed for {library_key}.{column}; "
+                f"expected {probe['expected_value']!r}, found {values!r}"
+            )
+        else:
+            print(f"Quality FY{year}: encoding probe passed for {library_key}.{column}", flush=True)
 
     if errors:
         raise ValueError("Quality checks failed:\n" + "\n".join(errors))
