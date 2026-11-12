@@ -21,6 +21,8 @@ Enable and trigger `pls_pipeline`. Leave `fiscal_year` blank to process all thre
 
 Docker Compose runs Airflow with LocalExecutor and a dedicated Postgres metadata database. Airflow launches Spark in local mode through `SparkSubmitOperator`. The project mounts its source data, code, and configuration read-only and stores Delta tables and the Spark catalog in a named volume.
 
+The Docker build uses [constraints.txt](constraints.txt) to pin the Python 3.12 dependency versions from the verified Airflow image and runs `pip check` after installation.
+
 ## Pipeline
 
 ```text

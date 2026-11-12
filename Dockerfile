@@ -12,5 +12,12 @@ RUN curl -fsSL --retry 3 https://repo.maven.apache.org/maven2/io/delta/delta-spa
     && curl -fsSL --retry 3 https://repo.maven.apache.org/maven2/io/delta/delta-storage/3.2.1/delta-storage-3.2.1.jar -o /opt/spark/jars/delta-storage-3.2.1.jar \
     && install -d -o airflow -g 0 /opt/airflow/pls-storage
 
+COPY --chown=airflow:0 constraints.txt /opt/airflow/constraints.txt
+
 USER airflow
-RUN pip install --no-cache-dir "apache-airflow==2.10.5" "apache-airflow-providers-apache-spark==4.11.3" "delta-spark==3.2.1" "pyspark==3.5.3"
+RUN python -m pip install --no-cache-dir --constraint /opt/airflow/constraints.txt \
+    "apache-airflow==2.10.5" \
+    "apache-airflow-providers-apache-spark==4.11.3" \
+    "delta-spark==3.2.1" \
+    "pyspark==3.5.3" \
+    && python -m pip check
